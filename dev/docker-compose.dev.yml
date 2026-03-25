@@ -33,8 +33,6 @@ networks:
     driver: bridge
 
   # Service-specific networks for database isolation
-  telegram_bot_net:
-    driver: bridge
   carfax_service_net:
     driver: bridge
   payment_service_net:
@@ -90,7 +88,6 @@ volumes:
   traefik_letsencrypt:
 
   # Database volumes (one per service for isolation)
-  pg_data_bot: # Telegram bot data
   pg_data_carfax: # Carfax service data
   pg_data_payment: # Payment processing data
   pg_data_auth: # Authentication data
@@ -121,7 +118,7 @@ volumes:
 
 # Auth Service Template
 x-auth-base: &auth-base
-  image: ivanskrb21/vinaslt_auth_service:dev
+  image: autofolwarkwork/auth_service:dev
   depends_on:
     postgres_auth:
       condition: service_healthy
@@ -150,7 +147,7 @@ x-auth-environment: &auth-environment
 
 # API Service Template
 x-api-base: &api-base
-  image: ivanskrb21/vinaslt_api_service:dev
+  image: autofolwarkwork/api_service:dev
   depends_on:
     redis_api_service:
       condition: service_healthy
@@ -172,7 +169,7 @@ x-api-environment: &api-environment
 
 # Payment Service Template
 x-payment-base: &payment-base
-  image: ivanskrb21/vinaslt_payment_service:dev
+  image: autofolwarkwork/payment_service:dev
   depends_on:
     postgres_payment:
       condition: service_healthy
@@ -194,7 +191,7 @@ x-payment-environment: &payment-environment
 
 # Carfax Service Template
 x-carfax-base: &carfax-base
-  image: ivanskrb21/vinaslt_carfax_service:dev
+  image: autofolwarkwork/carfax_service:dev
   entrypoint: ["/app/entrypoint.sh"]
   depends_on:
     postgres_carfax:
@@ -219,7 +216,7 @@ x-carfax-environment: &carfax-environment
 
 #Calculator Service Template
 x-calculator-base: &calculator-base
-  image: ivanskrb21/vinaslt_calculator_service:dev
+  image: autofolwarkwork/calculator_service:dev
   depends_on:
     postgres_calculator:
       condition: service_healthy
@@ -240,7 +237,7 @@ x-calculator-environment: &calculator-environment
   DEBUG:
 
 x-favorites-base: &favorites-base
-  image: ivanskrb21/vinaslt_favorites_service:dev
+  image: autofolwarkwork/favorites_service:dev
   depends_on:
     postgres_favorites:
       condition: service_healthy
@@ -261,7 +258,7 @@ x-favorites-environment: &favorites-environment
 
 # Bid Service Template
 x-bid-base: &bid-base
-  image: ivanskrb21/vinaslt_bid_service:dev
+  image: autofolwarkwork/bid_service:dev
   depends_on:
     postgres_bid:
       condition: service_healthy
@@ -290,7 +287,7 @@ x-bid-environment: &bid-environment
 
 # Order Service Template
 x-order-base: &order-base
-  image: ivanskrb21/vinaslt_order_service:dev
+  image: autofolwarkwork/order_service:dev
   depends_on:
     postgres_order:
       condition: service_healthy
@@ -314,7 +311,7 @@ x-order-environment: &order-environment
 
 # File Service Template
 x-file-base: &file-base
-  image: ivanskrb21/vinaslt_file_service:dev
+  image: autofolwarkwork/file_service:dev
   depends_on:
     postgres_file:
       condition: service_healthy
@@ -351,17 +348,17 @@ x-healthcheck: &healthcheck
 # ========================================================================
 
 services:
-  frontend:
-    image: vinasfront/vinas-frontend:dev
-    container_name: frontend
-    platform: linux/amd64
-    restart: unless-stopped
-    ports:
-     - "3000:3000"
-    networks:
-     - traefik_net
-    environment:
-     - NEXT_PUBLIC_API_URL=http://localhost
+#  frontend:
+#    image: vinasfront/vinas-frontend:dev
+#    container_name: frontend
+#    platform: linux/amd64
+#    restart: unless-stopped
+#    ports:
+#     - "3000:3000"
+#    networks:
+#     - traefik_net
+#    environment:
+#     - NEXT_PUBLIC_API_URL=http://localhost
 
   # ======================================================================
   # 1. REVERSE PROXY & LOAD BALANCER
@@ -370,22 +367,22 @@ services:
   # Provides SSL termination and load balancing capabilities
 
   traefik:
-    image: traefik:v3.5
+    # v3.6.4+: Docker Engine 29+ requires API ≥ 1.44; older Traefik clients get 400 / "client version too old" (see traefik#12253)
+    image: traefik:v3.6.4
     container_name: traefik
     restart: unless-stopped
     command:
-      - "--providers.docker=true" # Enable Docker provider
-      - "--providers.docker.exposedbydefault=false" # Require explicit labels
       - "--entrypoints.web.address=:80" # HTTP entrypoint
       - "--log.level=DEBUG" # Detailed logging
     ports:
       - "80:80" # HTTP traffic
       - "8080:8080" # Traefik dashboard
     volumes:
-      - ./traefik/dev/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik/dev/dynamic:/etc/traefik/dynamic:ro
-      - ./traefik/dev/logs:/logs
-      - /var/run/docker.sock:/var/run/docker.sock:ro # Docker socket access
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/logs:/logs
+      # rw: read-only mount can make the engine return HTTP 400 on API negotiation (Docker Desktop / recent moby)
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - traefik_net
 
@@ -457,7 +454,7 @@ services:
   # Handles email and SMS notifications via Twilio and SMTP
 
   notification_service:
-    image: ivanskrb21/vinaslt_notification_service:dev
+    image: autofolwarkwork/notification_service:dev
     container_name: notification_service
     command:
       [
@@ -494,7 +491,6 @@ services:
       - SMPT_PORT
       - EMAIL_PASSWORD
       - DEBUG
-      - TELEGRAM_BOT_TOKEN
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -688,47 +684,6 @@ services:
       - payment_rpc_net # Can communicate with payment RPC
       - carfax_service_net # Database access
       - internal_net # Internal services access
-
-  # ----------------------------------------------------------------------
-  # 2.6 TELEGRAM BOT SERVICE
-  # ----------------------------------------------------------------------
-  # User interface via Telegram bot for auction interactions
-
-  bot:
-    image: ivanskrb21/vinaslt_bot:latest
-    container_name: telegram_bot
-    command: ["python3", "main.py"]
-    environment:
-      # HTTP service endpoints
-      - API_SERVICE_URL=http://api_service:8000/
-      - PAYMENT_SERVICE_URL=http://payment_service:8002/
-      - CARFAX_SERVICE_URL=http://carfax_service:8001/
-
-      # gRPC service endpoints (for faster internal communication)
-      - RPC_CARFAX_URL=carfax_rpc_service:50053
-      - RPC_API_URL=api_rpc_service:50051
-
-      # Bot database configuration
-      - DB_HOST=postgres_bot
-      - DB_PORT=5432
-      - DB_NAME=${BOT_DB_NAME}
-      - DB_USER=${BOT_DB_USER}
-      - DB_PASS=${BOT_DB_PASS}
-
-      # Bot configuration
-      - SECRET_ADMIN_KEY
-      - API_BOT_TOKEN
-      - DEBUG
-    depends_on:
-      - api_service
-      - postgres_bot
-    restart: unless-stopped
-    networks:
-      - api_rpc_net # gRPC communication with API
-      - carfax_rpc_net # gRPC communication with Carfax
-      - telegram_bot_net # Bot database access
-      - internal_net # HTTP service communication
-
 
   # ----------------------------------------------------------------------
   # 2.7 CALCULATOR SERVICE (HTTP + INITIAL DATA LOAD)
@@ -994,7 +949,7 @@ services:
       - RABBITMQ_DEFAULT_VHOST=/
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./general/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     networks:
       - rabbitmq_net
       - internal_net
@@ -1136,21 +1091,6 @@ services:
       retries: 5
     networks:
       - notification_service_net
-      - adminer_database_net
-
-  # Database for Telegram Bot
-  postgres_bot:
-    image: postgres:17.5
-    container_name: postgres_bot
-    volumes:
-      - pg_data_bot:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=${BOT_DB_USER}
-      - POSTGRES_PASSWORD=${BOT_DB_PASS}
-      - POSTGRES_DB=${BOT_DB_NAME}
-    restart: unless-stopped
-    networks:
-      - telegram_bot_net
       - adminer_database_net
 
   # Database for Carfax Service
@@ -1333,7 +1273,6 @@ services:
       - postgres_api
       - postgres_auth
       - postgres_notification
-      - postgres_bot
       - postgres_carfax
       - postgres_payment
       - postgres_calculator
@@ -1367,7 +1306,7 @@ services:
     container_name: loki
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
-      - ./loki-config.yaml:/etc/loki/local-config.yaml
+      - ../general/loki-config.yaml:/etc/loki/local-config.yaml
       - loki-data:/loki
     networks:
       - monitoring
@@ -1379,9 +1318,9 @@ services:
     container_name: promtail
     volumes:
       - /var/log:/var/log:ro # System logs
-      - /var/run/docker.sock:/var/run/docker.sock:ro # Docker API access
+      - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/docker/containers:/var/lib/docker/containers:ro # Container logs
-      - ./promtail-config.yaml:/etc/promtail/config.yml
+      - ../general/promtail-config.yaml:/etc/promtail/config.yml
     command: -config.file=/etc/promtail/config.yml
     networks:
       - monitoring

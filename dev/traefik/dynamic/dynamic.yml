@@ -9,7 +9,7 @@ http:
       middlewares: [cors, api-strip]
 
     frontend:
-      entryPoints: [ websecure ]
+      entryPoints: [ web ]
       rule: "Host(`localhost`)"
       service: frontend
       priority: 10
