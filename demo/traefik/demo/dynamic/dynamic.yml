@@ -1,0 +1,285 @@
+http:
+  routers:
+    frontend:
+      entryPoints: [websecure]
+      rule: "Host(`demo.vinas.lt`)"
+      service: frontend
+      priority: 10
+
+    api:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/auction-api`)"
+      service: api-service
+      priority: 100
+      tls: {}
+      middlewares: [api-strip, cors]
+
+    payment:
+      entryPoints: [ websecure ]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/payment`)"
+      service: payment
+      priority: 45
+      middlewares: [ payment-strip, cors ]
+
+    payment-protected:
+      entryPoints: [ websecure ]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/payment/private`)"
+      service: payment
+      priority: 195
+      middlewares: [ cors, auth-forward, payment-strip ]
+
+    calculator:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/calculator`)"
+      service: calculator
+      priority: 45
+      tls: {}
+      middlewares: [calculator-strip, cors]
+
+    calculator-protected:
+      entryPoints: [ websecure ]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/calculator/private`)"
+      service: calculator
+      priority: 195
+      middlewares: [ cors, calculator-strip, auth-forward ]
+
+
+    grafana:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/grafana`)"
+      service: grafana
+      priority: 100
+      tls: {}
+
+
+    adminer:
+      entryPoints: [ websecure ]
+      rule: "Host(`adminer.vinas.lt`)"
+      service: adminer
+      priority: 100
+      tls: { }
+
+    notification:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/notification`)"
+      service: notification
+      priority: 90
+      tls: {}
+      middlewares: [notification-strip, cors]
+
+    auth:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/auth`)"
+      service: auth
+      priority: 80
+      tls: {}
+      middlewares: [auth-strip, cors]
+
+    favorites:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/favorites`)"
+      service: favorites
+      priority: 70
+      tls: {}
+      middlewares: [favorites-strip, cors]
+
+    favorites-protected:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/favorites/private`)"
+      service: favorites
+      priority: 195
+      tls: {}
+      middlewares: [cors, favorites-strip, auth-forward]
+
+    bid:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/bid`)"
+      service: bid
+      priority: 55
+      tls: {}
+      middlewares: [cors, bid-strip]
+
+    bid-protected:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/bid/private`)"
+      service: bid
+      priority: 60
+      tls: {}
+      middlewares: [cors, auth-forward, bid-strip]
+
+    order:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/order`)"
+      service: order
+      priority: 65
+      tls: {}
+      middlewares: [order-strip, cors]
+
+    order-protected:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/order/private`)"
+      service: order
+      priority: 70
+      tls: {}
+      middlewares: [cors, auth-forward, order-strip]
+
+    carfax:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/carfax`)"
+      service: carfax
+      priority: 70
+      tls: {}
+      middlewares: [carfax-strip, cors]
+
+    carfax-protected:
+      entryPoints: [websecure]
+      rule: "Host(`api.vinas.lt`) && PathPrefix(`/carfax/private`)"
+      service: carfax
+      priority: 75
+      tls: {}
+      middlewares: [cors, auth-forward, carfax-strip]
+
+
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:3000"
+
+    api-service:
+      loadBalancer:
+        servers:
+          - url: "http://api_service:8000"
+
+    auth:
+      loadBalancer:
+        servers:
+          - url: "http://auth_service:8003"
+
+    calculator:
+      loadBalancer:
+        servers:
+          - url: "http://calculator_service:8005"
+
+    payment:
+      loadBalancer:
+        servers:
+          - url: "http://payment_service:8002"
+
+    notification:
+      loadBalancer:
+        servers:
+          - url: "http://notification_service:8004"
+
+    favorites:
+      loadBalancer:
+        servers:
+          - url: "http://favorites_service:8006"
+
+    bid:
+      loadBalancer:
+        servers:
+          - url: "http://bid_service:8007"
+
+    order:
+      loadBalancer:
+        servers:
+          - url: "http://order_service:8008"
+
+    carfax:
+      loadBalancer:
+        servers:
+          - url: "http://carfax_service:8001"
+
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3001"
+
+    adminer:
+      loadBalancer:
+        servers:
+          - url: "http://database_adminer:8080"
+
+  middlewares:
+    api-strip:
+      stripPrefix:
+        prefixes: ["/auction-api"]
+
+    calculator-strip:
+      stripPrefix:
+        prefixes: ["/calculator"]
+
+    auth-strip:
+      stripPrefix:
+        prefixes: ["/auth"]
+
+    payment-strip:
+      stripPrefix:
+        prefixes: ["/payment"]
+
+    notification-strip:
+      stripPrefix:
+        prefixes: ["/notification"]
+
+    favorites-strip:
+      stripPrefix:
+        prefixes: ["/favorites"]
+
+    bid-strip:
+      stripPrefix:
+        prefixes: ["/bid"]
+
+    order-strip:
+      stripPrefix:
+        prefixes: ["/order"]
+
+    carfax-strip:
+      stripPrefix:
+        prefixes: ["/carfax"]
+
+    rabbitmq-strip:
+      stripPrefix:
+        prefixes: ["/rabbitmq"]
+
+    cors:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowOriginList:
+          - "https://demo.vinas.lt"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+          - "Access-Control-Allow-Origin"
+        accessControlExposeHeaders:
+          - "X-Total-Count"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 86400
+
+    auth-forward:
+      forwardAuth:
+        address: "http://auth_service:8003/v1/verify"
+        trustForwardHeader: true
+
+        # 1) В auth-сервис пойдут ВСЕ заголовки, включая Cookie (можно вообще убрать блок ниже).
+        # Если хотите задать явно, оставьте 'Cookie' и то, что реально нужно:
+        authRequestHeaders:
+          - Cookie
+          - Authorization
+          - X-Forwarded-Method
+          - X-Forwarded-Host
+          - X-Forwarded-Uri
+
+        # 2) Хедеры из ответа auth-сервиса, которые нужно добавить в запрос к бэкенду:
+        authResponseHeaders:
+          - X-User-ID
+          - X-User-Email
+          - X-User-Role
+          - X-Token-Expires
+          - X-Permissions

@@ -1,0 +1,48 @@
+# Traefik v3 Configuration с исправленным ACME
+
+# Логирование
+log:
+  level: DEBUG
+
+
+# Логи доступа
+accessLog:
+  filePath: /logs/access.log
+
+# API и Dashboard
+api:
+  dashboard: true
+
+# Точки входа
+entryPoints:
+  web:
+    address: ":80"
+    # Важно! Не делаем автоматический редирект при получении сертификатов
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+  docker:
+    exposedByDefault: false
+    network: traefik_net
+
+# Сертификаты Let's Encrypt
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: peyrovskaaa@gmail.com
+      storage: /letsencrypt/acme.json
+      keyType: EC256
+      # Сначала используем staging для тестирования
+#      caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      # После успешного теста переключитесь на production:
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      httpChallenge:
+        entryPoint: web
