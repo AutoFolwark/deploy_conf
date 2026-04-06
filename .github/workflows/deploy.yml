@@ -33,9 +33,9 @@ jobs:
           script: |
             set -e
             if [ "$DEPLOY_BRANCH" = "main" ]; then
-              COMPOSE_FILE="docker-compose.yml"
+              COMPOSE_FILE="prod/docker-compose.yml"
             else
-              COMPOSE_FILE="docker-compose.demo.yml"
+              COMPOSE_FILE="demo/docker-compose.demo.yml"
             fi
             if ! command -v infisical >/dev/null 2>&1; then
               curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash

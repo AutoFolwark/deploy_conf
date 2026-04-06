@@ -7,14 +7,18 @@ ENV := $(firstword $(filter dev demo prod,$(MAKECMDGOALS)))
 endif
 endif
 
+# Optional repo-root .env (copy from .env.example); passed to compose for all profiles when present.
+ENV_FILE := $(wildcard .env)
+
 ifeq ($(ENV),dev)
-COMPOSE_FILE := dev/docker-compose.dev.yml
+# Merge base + dev overlay.
+DOCKER_COMPOSE := docker compose $(if $(ENV_FILE),--env-file .env )-f general/docker-compose.base.yml -f dev/docker-compose.dev.yml
 INFISICAL_ENV := dev
 else ifeq ($(ENV),demo)
-COMPOSE_FILE := demo/docker-compose.demo.yml
+DOCKER_COMPOSE := docker compose $(if $(ENV_FILE),--env-file .env )-f demo/docker-compose.demo.yml
 INFISICAL_ENV := demo
 else ifeq ($(ENV),prod)
-COMPOSE_FILE := prod/docker-compose.yml
+DOCKER_COMPOSE := docker compose $(if $(ENV_FILE),--env-file .env )-f prod/docker-compose.yml
 INFISICAL_ENV := prod
 else
 $(error Unsupported ENV='$(ENV)'. Use dev, demo, or prod)
@@ -23,21 +27,21 @@ endif
 .PHONY: up down logs restart clean-volumes pull help --env dev demo prod
 
 up: pull
-	infisical run --env=$(INFISICAL_ENV) -- docker compose -f $(COMPOSE_FILE) up -d
+	infisical run --env=$(INFISICAL_ENV) -- $(DOCKER_COMPOSE) up -d
 
 down:
-	docker compose -f $(COMPOSE_FILE) down
+	$(DOCKER_COMPOSE) down
 
 logs:
-	docker compose -f $(COMPOSE_FILE) logs -f
+	$(DOCKER_COMPOSE) logs -f
 
 restart: down up
 
 clean-volumes:
-	docker compose -f $(COMPOSE_FILE) down -v
+	$(DOCKER_COMPOSE) down -v
 
 pull:
-	docker compose -f $(COMPOSE_FILE) pull
+	$(DOCKER_COMPOSE) pull
 
 help:
 	@echo "Available commands:"
@@ -57,7 +61,7 @@ help:
 	@echo "Resolved settings:"
 	@echo "  ENV           - $(ENV)"
 	@echo "  INFISICAL_ENV - $(INFISICAL_ENV)"
-	@echo "  COMPOSE_FILE  - $(COMPOSE_FILE)"
+	@echo "  DOCKER_COMPOSE - $(DOCKER_COMPOSE)"
 
 # No-op targets so `make up <env>` and legacy `make up -- --env <env>` do not fail.
 --env dev demo prod:
