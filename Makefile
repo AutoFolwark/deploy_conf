@@ -7,18 +7,17 @@ ENV := $(firstword $(filter dev demo prod,$(MAKECMDGOALS)))
 endif
 endif
 
-# Optional repo-root .env (copy from .env.example); passed to compose for all profiles when present.
-ENV_FILE := $(wildcard .env)
-
 ifeq ($(ENV),dev)
-# Merge base + dev overlay.
-DOCKER_COMPOSE := docker compose $(if $(ENV_FILE),--env-file .env )-f general/docker-compose.base.yml -f dev/docker-compose.dev.yml
+# Merge base + dev overlay; embedded-datastores profile starts bundled Postgres/Redis/RabbitMQ/Adminer.
+# Variables (CONTAINER_TAG, POSTGRES_*, …) come from `infisical run` / your shell, not from a repo .env file.
+# Keep flags in sync with scripts/initialize_db_users/compose_dev_argv.py
+DOCKER_COMPOSE := docker compose --profile embedded-datastores -f general/docker-compose.base.yml -f dev/docker-compose.dev.yml
 INFISICAL_ENV := dev
 else ifeq ($(ENV),demo)
-DOCKER_COMPOSE := docker compose $(if $(ENV_FILE),--env-file .env )-f demo/docker-compose.demo.yml
+DOCKER_COMPOSE := docker compose -f demo/docker-compose.demo.yml
 INFISICAL_ENV := demo
 else ifeq ($(ENV),prod)
-DOCKER_COMPOSE := docker compose $(if $(ENV_FILE),--env-file .env )-f prod/docker-compose.yml
+DOCKER_COMPOSE := docker compose -f prod/docker-compose.yml
 INFISICAL_ENV := prod
 else
 $(error Unsupported ENV='$(ENV)'. Use dev, demo, or prod)
@@ -26,8 +25,13 @@ endif
 
 .PHONY: up down logs restart clean-volumes pull help --env dev demo prod
 
+ifeq ($(ENV),prod)
 up: pull
 	infisical run --env=$(INFISICAL_ENV) -- $(DOCKER_COMPOSE) up -d
+else
+up: pull
+	infisical run --env=$(INFISICAL_ENV) -- $(SHELL) ./scripts/pg_stack_up.sh $(ENV)
+endif
 
 down:
 	$(DOCKER_COMPOSE) down
@@ -51,6 +55,10 @@ help:
 	@echo "  restart       - Stop and start containers"
 	@echo "  clean-volumes - Stop containers and remove volumes"
 	@echo "  pull          - Pull latest images"
+	@echo "  (dev/demo up runs scripts/initialize.py — Postgres + Redis preflight)"
+	@echo "  down/logs/pull need compose vars (CONTAINER_TAG, DB_*, …): run"
+	@echo "    infisical run --env=<dev|demo|prod> -- make <target>"
+	@echo "  if those vars are not already exported in your shell."
 	@echo "  help          - Show this help message"
 	@echo ""
 	@echo "Environment selection:"

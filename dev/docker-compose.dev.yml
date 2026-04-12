@@ -1,9 +1,12 @@
 # Dev overlay for general/docker-compose.base.yml (merges; does not use `include` so adminer can be patched).
-# Docker Compose 2.x. From repo root:
-#   docker compose --env-file .env -f general/docker-compose.base.yml -f dev/docker-compose.dev.yml up
+# Docker Compose 2.x. From repo root (variables from Infisical: `infisical run -- make up`):
+#   docker compose … (same argv as scripts/initialize_db_users/compose_dev_argv.py):
+#   docker compose --profile embedded-datastores -f general/docker-compose.base.yml -f dev/docker-compose.dev.yml up
 #
-# First -f sets the default project dir to general/, so auto-loaded .env is general/.env — use repo-root .env
-# via --env-file .env (see .env.example; Makefile/run.ps1 pass it when .env exists).
+# `--profile embedded-datastores` starts bundled PostgreSQL, Redis, RabbitMQ, and Adminer (see general/docker-compose.base.yml).
+#
+# First -f sets the default project dir to general/, so auto-loaded .env would be general/.env — prefer injecting
+# env via Infisical / your shell (CONTAINER_TAG, POSTGRES_*, DB_*, …).
 # Bind mounts: with `-f general/...` first, the compose project dir is general/, so `./traefik/...`
 # would wrongly resolve under general/ (Docker then creates a directory named traefik.yml). Use ../dev/traefik/...
 #
@@ -48,3 +51,176 @@ services:
   adminer:
     ports:
       - "8090:8080"
+
+  # Restore startup ordering vs local postgres/redis (depends_on merges with base; see base.yml anchors).
+  auth_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  auth_rpc_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  auth_init_db:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  api_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  api_rpc_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  api_init_db:
+    depends_on:
+      api_service:
+        condition: service_healthy
+      api_rpc_service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification_service:
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  payment_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth_service:
+        condition: service_healthy
+  payment_rpc_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  carfax_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+  carfax_rpc_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      payment_rpc_service:
+        condition: service_healthy
+
+  calculator_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api_rpc_service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  calculator_rpc_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api_rpc_service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  calculator_init_db:
+    depends_on:
+      calculator_service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  favorites_service:
+    depends_on:
+      api_rpc_service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  bid_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api_rpc_service:
+        condition: service_healthy
+      payment_rpc_service:
+        condition: service_healthy
+      auth_rpc_service:
+        condition: service_healthy
+      calculator_rpc_service:
+        condition: service_healthy
+
+  order_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  file_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api_rpc_service:
+        condition: service_healthy
+  file_service_worker:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api_rpc_service:
+        condition: service_healthy
+  file_service_celery_beat:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api_rpc_service:
+        condition: service_healthy
+  file_rpc_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api_rpc_service:
+        condition: service_healthy

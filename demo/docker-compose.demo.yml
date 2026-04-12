@@ -1,7 +1,11 @@
-# Docker Compose 2.20+ (include). From repo root: docker compose -f demo/docker-compose.demo.yml up
+# Docker Compose 2.20+ (include). From repo root (env from Infisical / shell):
+#   docker compose -f demo/docker-compose.demo.yml up
 # Or: cd demo && docker compose -f docker-compose.demo.yml up
 #
-# Explicit project name keeps volume/network prefixes as `demo_*` (same as when this file lived alone in demo/).
+# Demo does not start bundled PostgreSQL, Redis, RabbitMQ, or Adminer (profile `embedded-datastores` in
+# general/docker-compose.base.yml). Set DB_HOST, REDIS_URL, RABBITMQ_URL, CONTAINER_TAG (e.g. via Infisical).
+# Redis for auth/api/calculator is ${REDIS_URL}/0, ${REDIS_URL}/1, ${REDIS_URL}/2 (e.g. REDIS_URL=redis://host:6379).
+# App images use autofolwarkwork/*:${CONTAINER_TAG}; frontend vinasfront/vinas-frontend:${CONTAINER_TAG:-demo}.
 
 include:
   - path: ../general/docker-compose.base.yml
@@ -10,17 +14,13 @@ name: demo
 
 services:
   frontend:
-    image: vinasfront/vinas-frontend:demo
+    image: vinasfront/vinas-frontend:${CONTAINER_TAG:-demo}
     container_name: frontend
     restart: unless-stopped
     expose:
       - 3000
     networks:
       - traefik_net
-
-  # ======================================================================
-  # 1. REVERSE PROXY & LOAD BALANCER
-  # ======================================================================
 
   traefik:
     image: traefik:v3.5
@@ -44,3 +44,99 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - traefik_net
+
+  auth_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/0
+      RABBITMQ_URL: ${RABBITMQ_URL}
+  auth_rpc_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/0
+      RABBITMQ_URL: ${RABBITMQ_URL}
+  auth_init_db:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/0
+      RABBITMQ_URL: ${RABBITMQ_URL}
+
+  notification_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+
+  api_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/1
+  api_rpc_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/1
+  api_init_db:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/1
+
+  payment_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+  payment_rpc_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+
+  carfax_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+  carfax_rpc_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+
+  calculator_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/2
+  calculator_rpc_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/2
+  calculator_init_db:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/2
+
+  favorites_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+
+  bid_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+
+  order_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+
+  file_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+  file_service_worker:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+  file_service_celery_beat:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+  file_rpc_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      RABBITMQ_URL: ${RABBITMQ_URL}
