@@ -1,30 +1,89 @@
 param(
     [string]$command = "up",
     [string]$env = "dev",
-    [string]$compose_file = "docker-compose.dev.yml"
+    # Default: merge general base + dev overlay. Pass a single path to override (e.g. demo/docker-compose.demo.yml).
+    [string]$compose_file = ""
 )
+
+# Match Makefile: demo compose stack uses Infisical environment "staging", not "demo".
+$infisicalEnv = if ($env -eq "demo") { "staging" } else { $env }
+
+# Align with Makefile: default compose file per environment when none is passed.
+if ([string]::IsNullOrEmpty($compose_file) -and $env -eq "demo") {
+    $compose_file = "demo/docker-compose.demo.yml"
+}
+if ([string]::IsNullOrEmpty($compose_file) -and $env -eq "prod") {
+    $compose_file = "prod/docker-compose.yml"
+}
+
+function Get-ComposeArgs {
+    param([string]$ComposeFile)
+    if ($ComposeFile) {
+        return ,(@("-f", $ComposeFile))
+    }
+    return ,(@("--profile", "embedded-datastores", "-f", "general/docker-compose.base.yml", "-f", "dev/docker-compose.dev.yml"))
+}
+
+$composeArgs = Get-ComposeArgs -ComposeFile $compose_file
+
+function Test-UsePreflight {
+    param([string]$ComposeFile)
+    if ([string]::IsNullOrEmpty($ComposeFile)) {
+        return $true
+    }
+    $norm = $ComposeFile -replace '\\', '/'
+    return $norm -match '(?i)demo/docker-compose\.demo\.yml$'
+}
+
+function Invoke-StackUp {
+    param([string]$EnvName, [string]$ComposeFile, [string[]]$ComposeArgsFull)
+
+    docker compose @ComposeArgsFull pull
+
+    if ($EnvName -eq "prod") {
+        infisical run --env=$infisicalEnv -- docker compose @ComposeArgsFull up -d
+        return
+    }
+
+    if (Test-UsePreflight -ComposeFile $ComposeFile) {
+        $bash = Get-Command bash -ErrorAction SilentlyContinue
+        if (-not $bash) {
+            Write-Error "bash is not in PATH. scripts/pg_stack_up.sh requires bash (e.g. Git for Windows). On Linux/macOS use: make up"
+            exit 1
+        }
+        $mode = if ($ComposeFile -and (($ComposeFile -replace '\\', '/') -match '(?i)demo/docker-compose\.demo\.yml$')) {
+            "demo"
+        } else {
+            "dev"
+        }
+        infisical run --env=$infisicalEnv -- bash ./scripts/pg_stack_up.sh $mode
+    } else {
+        infisical run --env=$infisicalEnv -- docker compose @ComposeArgsFull up -d
+    }
+}
 
 switch ($command.ToLower()) {
     "up" {
-        docker compose -f $compose_file pull
-        infisical run --env=$env -- docker compose -f $compose_file up -d
+        Invoke-StackUp -EnvName $env -ComposeFile $compose_file -ComposeArgsFull $composeArgs
     }
     "down" {
-        docker compose -f $compose_file down
+        docker compose @composeArgs down
     }
     "logs" {
-        docker compose -f $compose_file logs -f
+        docker compose @composeArgs logs -f
     }
     "restart" {
-        docker compose -f $compose_file down
-        infisical run --env=$env -- docker compose -f $compose_file up -d
+        docker compose @composeArgs down
+        Invoke-StackUp -EnvName $env -ComposeFile $compose_file -ComposeArgsFull $composeArgs
     }
     "clean-volumes" {
-        docker compose -f $compose_file down -v
+        docker compose @composeArgs down -v
     }
     "help" {
         Write-Host "Available commands:" -ForegroundColor Green
-        Write-Host "  up            - Pull images and start containers" -ForegroundColor White
+        Write-Host "  up            - Pull images and start containers (dev/demo: runs scripts/pg_stack_up.sh preflight)" -ForegroundColor White
+        Write-Host "  down/logs     - If compose vars are not in your environment, run:" -ForegroundColor White
+        Write-Host "                infisical run --env=<dev|staging|prod> -- .\run.ps1 <command>  (demo stack uses staging)" -ForegroundColor White
         Write-Host "  down          - Stop and remove containers" -ForegroundColor White
         Write-Host "  logs          - Follow container logs" -ForegroundColor White
         Write-Host "  restart       - Stop and start containers" -ForegroundColor White
@@ -33,13 +92,14 @@ switch ($command.ToLower()) {
         Write-Host ""
         Write-Host "Parameters:" -ForegroundColor Green
         Write-Host "  -command      - Command to execute (default: up)" -ForegroundColor White
-        Write-Host "  -env          - Environment for Infisical (default: dev)" -ForegroundColor White
-        Write-Host "  -compose_file - Docker Compose file (default: docker-compose.dev.yml)" -ForegroundColor White
+        Write-Host "  -env          - Stack: dev | demo | prod; Infisical: demo maps to env staging" -ForegroundColor White
+        Write-Host "  -compose_file - Single compose file path, or omit for dev (base + dev overlay)" -ForegroundColor White
         Write-Host ""
         Write-Host "Examples:" -ForegroundColor Green
-        Write-Host "  .\docker-compose.ps1 up" -ForegroundColor Yellow
-        Write-Host "  .\docker-compose.ps1 -command logs" -ForegroundColor Yellow
-        Write-Host "  .\docker-compose.ps1 -command up -env prod -compose_file docker-compose.prod.yml" -ForegroundColor Yellow
+        Write-Host "  .\run.ps1 up" -ForegroundColor Yellow
+        Write-Host "  .\run.ps1 -command up -env demo" -ForegroundColor Yellow
+        Write-Host "  .\run.ps1 -command logs" -ForegroundColor Yellow
+        Write-Host "  .\run.ps1 -command up -env prod -compose_file prod/docker-compose.yml" -ForegroundColor Yellow
     }
     default {
         Write-Host "Unknown command: $command" -ForegroundColor Red

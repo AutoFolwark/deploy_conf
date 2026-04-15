@@ -1,0 +1,44 @@
+# Traefik v3 — конфиг только для demo (demo/docker-compose.demo.yml).
+# Маршруты и middleware: demo/traefik/demo/dynamic/
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+  docker:
+    exposedByDefault: false
+    network: traefik_net
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: peyrovskaaa@gmail.com
+      storage: /letsencrypt/acme.json
+      keyType: EC256
+      # Публичное демо (валидный HTTPS): production Let's Encrypt.
+      caServer: https://acme-v02.api.letsencrypt.org/directory
+      # Частые пересборки / тест ACME без лимитов — раскомментируйте staging (сертификат не доверен браузером):
+      # caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+      httpChallenge:
+        entryPoint: web
