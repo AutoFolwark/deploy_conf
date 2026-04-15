@@ -75,7 +75,7 @@ jobs:
                 fi
               fi
             fi
-            cd /srv/vinas/deploy_conf || exit 1
+            cd /var/www/bidmax/deploy_conf || exit 1
             export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="$INFISICAL_CLIENT_ID" --client-secret="$INFISICAL_CLIENT_SECRET" --domain=https://eu.infisical.com --silent --plain)
             if [ -z "$INFISICAL_TOKEN" ]; then
               echo "Infisical login failed or returned empty token"
