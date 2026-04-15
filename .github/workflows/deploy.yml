@@ -34,8 +34,10 @@ jobs:
             set -e
             if [ "$DEPLOY_BRANCH" = "main" ]; then
               COMPOSE_FILE="prod/docker-compose.yml"
+              INFISICAL_ENV="prod"
             else
               COMPOSE_FILE="demo/docker-compose.demo.yml"
+              INFISICAL_ENV="staging"
             fi
             if ! command -v infisical >/dev/null 2>&1; then
               curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
@@ -51,9 +53,15 @@ jobs:
             git fetch origin "$DEPLOY_BRANCH"
             git reset --hard "origin/$DEPLOY_BRANCH"
             git clean -fd
-            docker compose -f "$COMPOSE_FILE" pull
-            
-            docker compose -f "$COMPOSE_FILE" down
-            
-            infisical run --projectId="$INFISICAL_PROJECT_ID" --env=prod --token="$INFISICAL_TOKEN" --domain=https://eu.infisical.com -- docker compose -f "$COMPOSE_FILE" up -d --build
+
+            ic_run() {
+              infisical run --projectId="$INFISICAL_PROJECT_ID" --env="$INFISICAL_ENV" --token="$INFISICAL_TOKEN" --domain=https://eu.infisical.com -- "$@"
+            }
+
+            ic_run sh -c "docker compose -f $COMPOSE_FILE pull"
+            ic_run sh -c "docker compose -f $COMPOSE_FILE down"
+            if [ "$DEPLOY_BRANCH" != "main" ]; then
+              ic_run python3 scripts/initialize.py
+            fi
+            ic_run sh -c "docker compose -f $COMPOSE_FILE up -d --build"
             echo "Deployment completed successfully!"

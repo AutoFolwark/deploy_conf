@@ -14,7 +14,7 @@ name: demo
 
 services:
   frontend:
-    image: vinasfront/vinas-frontend:${CONTAINER_TAG:-demo}
+    image: autofolwarkwork/bidmax-frontend:demo
     container_name: frontend
     restart: unless-stopped
     expose:

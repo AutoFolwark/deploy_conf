@@ -326,6 +326,10 @@ services:
     container_name: auth_service
     command: [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003", "--log-level", "debug", "--proxy-headers" ]
     expose: [ "8003" ]
+    # Migrations run in auth_init_db; start HTTP only after init exits to avoid alembic races on the same DB.
+    depends_on:
+      auth_init_db:
+        condition: service_completed_successfully
     environment:
       <<: *auth-environment
     healthcheck:
@@ -341,6 +345,9 @@ services:
     container_name: auth_rpc_service
     command: [ "python", "serve_rpc.py" ]
     expose: [ "50054" ]
+    depends_on:
+      auth_init_db:
+        condition: service_completed_successfully
     environment:
       <<: *auth-environment
     healthcheck:
@@ -448,11 +455,14 @@ services:
     command: [ "python", "scripts/init_db.py" ]
     environment:
       <<: *api-environment
+    # Serialize migrations on the shared Postgres instance (one init at a time per logical wave).
     depends_on:
-        api_service:
-          condition: service_healthy
-        api_rpc_service:
-          condition: service_healthy
+      auth_init_db:
+        condition: service_completed_successfully
+      api_service:
+        condition: service_healthy
+      api_rpc_service:
+        condition: service_healthy
     restart: "no"
 
     networks:
@@ -591,6 +601,8 @@ services:
     environment:
       <<: *calculator-environment
     depends_on:
+      api_init_db:
+        condition: service_completed_successfully
       calculator_service:
         condition: service_healthy
     restart: "no"

@@ -14,8 +14,9 @@ ifeq ($(ENV),dev)
 DOCKER_COMPOSE := docker compose --profile embedded-datastores -f general/docker-compose.base.yml -f dev/docker-compose.dev.yml
 INFISICAL_ENV := dev
 else ifeq ($(ENV),demo)
+# Compose/pg_stack_up still use ENV=demo; Infisical secrets load from the "staging" environment.
 DOCKER_COMPOSE := docker compose -f demo/docker-compose.demo.yml
-INFISICAL_ENV := demo
+INFISICAL_ENV := staging
 else ifeq ($(ENV),prod)
 DOCKER_COMPOSE := docker compose -f prod/docker-compose.yml
 INFISICAL_ENV := prod
@@ -25,27 +26,29 @@ endif
 
 .PHONY: up down logs restart clean-volumes pull help --env dev demo prod
 
+# `pull` must run under the same env as compose (Infisical / exported vars). A bare `docker compose pull`
+# before `infisical run` fails on ${POSTGRES_PASSWORD:?…} and empty DB_* substitutions.
 ifeq ($(ENV),prod)
-up: pull
-	infisical run --env=$(INFISICAL_ENV) -- $(DOCKER_COMPOSE) up -d
+up:
+	infisical run --env=$(INFISICAL_ENV) -- sh -c '$(DOCKER_COMPOSE) pull && $(DOCKER_COMPOSE) up -d'
 else
-up: pull
-	infisical run --env=$(INFISICAL_ENV) -- $(SHELL) ./scripts/pg_stack_up.sh $(ENV)
+up:
+	infisical run --env=$(INFISICAL_ENV) -- sh -c '$(DOCKER_COMPOSE) pull && bash ./scripts/pg_stack_up.sh $(ENV)'
 endif
 
 down:
-	$(DOCKER_COMPOSE) down
+	infisical run --env=$(INFISICAL_ENV) -- $(DOCKER_COMPOSE) down
 
 logs:
-	$(DOCKER_COMPOSE) logs -f
+	infisical run --env=$(INFISICAL_ENV) -- $(DOCKER_COMPOSE) logs -f
 
 restart: down up
 
 clean-volumes:
-	$(DOCKER_COMPOSE) down -v
+	infisical run --env=$(INFISICAL_ENV) -- $(DOCKER_COMPOSE) down -v
 
 pull:
-	$(DOCKER_COMPOSE) pull
+	infisical run --env=$(INFISICAL_ENV) -- $(DOCKER_COMPOSE) pull
 
 help:
 	@echo "Available commands:"
@@ -56,9 +59,7 @@ help:
 	@echo "  clean-volumes - Stop containers and remove volumes"
 	@echo "  pull          - Pull latest images"
 	@echo "  (dev/demo up runs scripts/initialize.py — Postgres + Redis preflight)"
-	@echo "  down/logs/pull need compose vars (CONTAINER_TAG, DB_*, …): run"
-	@echo "    infisical run --env=<dev|demo|prod> -- make <target>"
-	@echo "  if those vars are not already exported in your shell."
+	@echo "  down/logs/clean-volumes/pull run via infisical (demo stack uses Infisical env staging)."
 	@echo "  help          - Show this help message"
 	@echo ""
 	@echo "Environment selection:"
