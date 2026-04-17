@@ -809,6 +809,8 @@ services:
 
   # ----------------------------------------------------------------------
   # 5.1 POSTGRESQL (single container; create per-service DBs/roles yourself or via init SQL)
+  # Profile embedded-datastores only. Set POSTGRES_PASSWORD when you use this service; it is not
+  # required for compose parsing when you use external DBs (e.g. demo/prod without this profile).
   # ----------------------------------------------------------------------
   postgres:
     image: postgres:17.5
@@ -822,7 +824,7 @@ services:
       - pg_data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD (e.g. via Infisical / environment)}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h localhost -p 5432"]

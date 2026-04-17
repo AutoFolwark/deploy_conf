@@ -27,7 +27,8 @@ endif
 .PHONY: up down logs restart clean-volumes pull help --env dev demo prod
 
 # `pull` must run under the same env as compose (Infisical / exported vars). A bare `docker compose pull`
-# before `infisical run` fails on ${POSTGRES_PASSWORD:?…} and empty DB_* substitutions.
+# before `infisical run` fails on empty DB_* substitutions (POSTGRES_PASSWORD is optional unless
+# you start profile embedded-datastores).
 ifeq ($(ENV),prod)
 up:
 	infisical run --env=$(INFISICAL_ENV) -- sh -c '$(DOCKER_COMPOSE) pull && $(DOCKER_COMPOSE) up -d'
