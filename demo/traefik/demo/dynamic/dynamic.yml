@@ -2,20 +2,20 @@ http:
   routers:
     frontend:
       entryPoints: [websecure]
-      rule: "Host(`demo.vinas.lt`)"
+      rule: "Host(`demo.bidmax.eu`)"
       service: frontend
       priority: 10
       tls:
         certResolver: letsencrypt
         domains:
-          - main: demo.vinas.lt
+          - main: demo.bidmax.eu
             sans:
-              - api.demo.vinas.lt
-              - adminer.demo.vinas.lt
+              - api.demo.bidmax.eu
+              - adminer.demo.bidmax.eu
 
     api:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/auction-api`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/auction-api`)"
       service: api-service
       priority: 100
       tls: {}
@@ -23,21 +23,21 @@ http:
 
     payment:
       entryPoints: [ websecure ]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/payment`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/payment`)"
       service: payment
       priority: 45
       middlewares: [ payment-strip, cors ]
 
     payment-protected:
       entryPoints: [ websecure ]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/payment/private`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/payment/private`)"
       service: payment
       priority: 195
       middlewares: [ cors, auth-forward, payment-strip ]
 
     calculator:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/calculator`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/calculator`)"
       service: calculator
       priority: 45
       tls: {}
@@ -45,7 +45,7 @@ http:
 
     calculator-protected:
       entryPoints: [ websecure ]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/calculator/private`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/calculator/private`)"
       service: calculator
       priority: 195
       middlewares: [ cors, calculator-strip, auth-forward ]
@@ -53,7 +53,7 @@ http:
 
     grafana:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/grafana`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/grafana`)"
       service: grafana
       priority: 100
       tls: {}
@@ -61,14 +61,14 @@ http:
 
     adminer:
       entryPoints: [ websecure ]
-      rule: "Host(`adminer.demo.vinas.lt`)"
+      rule: "Host(`adminer.demo.bidmax.eu`)"
       service: adminer
       priority: 100
       tls: { }
 
     notification:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/notification`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/notification`)"
       service: notification
       priority: 90
       tls: {}
@@ -76,7 +76,7 @@ http:
 
     auth:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/auth`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/auth`)"
       service: auth
       priority: 80
       tls: {}
@@ -84,7 +84,7 @@ http:
 
     favorites:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/favorites`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/favorites`)"
       service: favorites
       priority: 70
       tls: {}
@@ -92,7 +92,7 @@ http:
 
     favorites-protected:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/favorites/private`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/favorites/private`)"
       service: favorites
       priority: 195
       tls: {}
@@ -100,7 +100,7 @@ http:
 
     bid:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/bid`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/bid`)"
       service: bid
       priority: 55
       tls: {}
@@ -108,7 +108,7 @@ http:
 
     bid-protected:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/bid/private`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/bid/private`)"
       service: bid
       priority: 60
       tls: {}
@@ -116,7 +116,7 @@ http:
 
     order:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/order`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/order`)"
       service: order
       priority: 65
       tls: {}
@@ -124,7 +124,7 @@ http:
 
     order-protected:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/order/private`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/order/private`)"
       service: order
       priority: 70
       tls: {}
@@ -132,7 +132,7 @@ http:
 
     carfax:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/carfax`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/carfax`)"
       service: carfax
       priority: 70
       tls: {}
@@ -140,7 +140,7 @@ http:
 
     carfax-protected:
       entryPoints: [websecure]
-      rule: "Host(`api.demo.vinas.lt`) && PathPrefix(`/carfax/private`)"
+      rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/carfax/private`)"
       service: carfax
       priority: 75
       tls: {}
@@ -258,7 +258,7 @@ http:
           - DELETE
           - OPTIONS
         accessControlAllowOriginList:
-          - "https://demo.vinas.lt"
+          - "https://demo.bidmax.eu"
         accessControlAllowHeaders:
           - "Content-Type"
           - "Authorization"
