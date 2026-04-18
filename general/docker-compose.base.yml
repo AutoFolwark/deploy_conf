@@ -400,6 +400,7 @@ services:
       TELEGRAM_BOT_TOKEN:
       ADMINS_TG_ID:
       EMAIL_PASSWORD:
+      LOGO_URL:
       DEBUG:
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8004/health || exit 1"]

@@ -37,6 +37,7 @@ jobs:
               INFISICAL_ENV="prod"
             else
               COMPOSE_FILE="demo/docker-compose.demo.yml"
+              # Must match Makefile `make up demo`: secrets for this stack live in Infisical env "staging", not "demo".
               INFISICAL_ENV="staging"
             fi
             if ! command -v infisical >/dev/null 2>&1; then
