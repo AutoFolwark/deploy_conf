@@ -2,8 +2,9 @@
 #   docker compose -f demo/docker-compose.demo.yml up
 # Or: cd demo && docker compose -f docker-compose.demo.yml up
 #
-# Demo does not start bundled PostgreSQL, Redis, RabbitMQ, or Adminer (profile `embedded-datastores` in
-# general/docker-compose.base.yml). Set DB_HOST, REDIS_URL, RABBITMQ_URL, CONTAINER_TAG (e.g. via Infisical).
+# Demo does not start bundled PostgreSQL, Redis, or RabbitMQ (profile `embedded-datastores` in
+# general/docker-compose.base.yml). Adminer is started below for external DB_HOST (Traefik → database_adminer:8080).
+# Set DB_HOST, REDIS_URL, RABBITMQ_URL, CONTAINER_TAG (e.g. via Infisical).
 # Redis for auth/api/calculator is ${REDIS_URL}/0, ${REDIS_URL}/1, ${REDIS_URL}/2 (e.g. REDIS_URL=redis://host:6379).
 # App images use autofolwarkwork/*:${CONTAINER_TAG}; frontend vinasfront/vinas-frontend:${CONTAINER_TAG:-demo}.
 
@@ -44,6 +45,28 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - traefik_net
+
+  # Base `adminer` uses profile `embedded-datastores` (bundled Postgres), so it does not run on demo.
+  # Traefik file config routes adminer.demo.bidmax.eu → database_adminer:8080 — this service satisfies that.
+  # Do not use `--profile embedded-datastores` with this file (would duplicate container_name with base adminer).
+  adminer_external:
+    image: adminer:latest
+    container_name: database_adminer
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: ${DB_HOST}
+      ADMINER_DESIGN: pepa-linha-dark
+      ADMINER_PLUGINS: tables-filter tinymce
+    networks:
+      - traefik_net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   auth_service:
     environment:
