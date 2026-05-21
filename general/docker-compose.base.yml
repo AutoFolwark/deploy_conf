@@ -906,6 +906,7 @@ services:
       - loki
     restart: unless-stopped
     user: root  # Required for accessing Docker logs
+    
 
   # ----------------------------------------------------------------------
   # 6.2 MONITORING DASHBOARD
