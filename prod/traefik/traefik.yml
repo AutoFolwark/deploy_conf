@@ -1,29 +1,38 @@
-# Traefik v3 Configuration с исправленным ACME
+# Traefik v3 — prod (prod/docker-compose.yml). Routes: prod/traefik/dynamic/
 
-# Логирование
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
 log:
   level: INFO
 
-
-# Логи доступа
 accessLog:
   filePath: /logs/access.log
 
-# API и Dashboard
+# Dashboard off by default on prod; expose via dynamic router + auth if needed (never insecure: true).
 api:
-  dashboard: true
+  dashboard: false
 
-# Точки входа
 entryPoints:
   web:
     address: ":80"
-    # Важно! Не делаем автоматический редирект при получении сертификатов
+    # ACME httpChallenge still works on :80; other HTTP traffic redirects to HTTPS.
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
 
   websecure:
     address: ":443"
     http:
       tls:
         certResolver: letsencrypt
+        options: default
+      middlewares:
+        - security-headers@file
 
 providers:
   file:
@@ -33,14 +42,18 @@ providers:
     exposedByDefault: false
     network: traefik_net
 
-# Сертификаты Let's Encrypt
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: true
+
 certificatesResolvers:
   letsencrypt:
     acme:
       email: peyrovskaaa@gmail.com
       storage: /letsencrypt/acme.json
       keyType: EC256
-      # После успешного теста переключитесь на production:
       caServer: https://acme-v02.api.letsencrypt.org/directory
       httpChallenge:
         entryPoint: web
