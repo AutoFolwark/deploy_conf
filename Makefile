@@ -31,7 +31,11 @@ ifndef INFISICAL_TOKEN
 $(error INFISICAL_TOKEN must be set — run infisical login or use scripts/auto_deploy.sh)
 endif
 
-INFISICAL_RUN := infisical run --projectId=$(INFISICAL_PROJECT_ID) --env=$(INFISICAL_ENV) --token=$(INFISICAL_TOKEN) --
+INFISICAL_RUN := infisical run --projectId=$(INFISICAL_PROJECT_ID) --env=$(INFISICAL_ENV) --token=$(INFISICAL_TOKEN)
+ifdef INFISICAL_DOMAIN
+INFISICAL_RUN += --domain=$(INFISICAL_DOMAIN)
+endif
+INFISICAL_RUN += --
 
 .PHONY: up down deploy logs restart clean-volumes pull help --env dev demo prod
 
