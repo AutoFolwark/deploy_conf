@@ -16,6 +16,8 @@ services:
     image: autofolwarkwork/bidmax-frontend:prod
     container_name: frontend
     restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: https://api.bidmax.eu
     expose:
       - 3000
     networks:
