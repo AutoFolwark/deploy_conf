@@ -32,50 +32,7 @@ jobs:
           envs: INFISICAL_CLIENT_ID,INFISICAL_CLIENT_SECRET,INFISICAL_PROJECT_ID,DEPLOY_BRANCH
           script: |
             set -e
-            if [ "$DEPLOY_BRANCH" = "main" ]; then
-              COMPOSE_FILE="prod/docker-compose.yml"
-              INFISICAL_ENV="prod"
-            else
-              COMPOSE_FILE="demo/docker-compose.demo.yml"
-              # Must match Makefile `make up demo`: secrets for this stack live in Infisical env "staging", not "demo".
-              INFISICAL_ENV="staging"
-            fi
-            if ! command -v infisical >/dev/null 2>&1; then
-              if command -v apt-get >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
-                curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
-                sudo apt-get update
-                sudo apt-get install -y infisical
-              elif command -v apk >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
-                curl -fsSL 'https://artifacts-cli.infisical.com/setup.apk.sh' | sudo sh
-                sudo apk update && sudo apk add infisical
-              else
-                ARCH=$(uname -m)
-                case "$ARCH" in
-                  x86_64) CLI_ARCH=linux_amd64 ;;
-                  aarch64|arm64) CLI_ARCH=linux_arm64 ;;
-                  armv7l) CLI_ARCH=linux_armv7 ;;
-                  armv6l) CLI_ARCH=linux_armv6 ;;
-                  *) echo "Unsupported uname -m for Infisical CLI: $ARCH"; exit 1 ;;
-                esac
-                VERSION=$(curl -fsSL https://api.github.com/repos/Infisical/cli/releases/latest | grep -o '"tag_name": *"v[^"]*"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
-                TMP=$(mktemp -d)
-                trap 'rm -rf "$TMP"' EXIT
-                curl -fsSL "https://github.com/Infisical/cli/releases/download/v${VERSION}/cli_${VERSION}_${CLI_ARCH}.tar.gz" -o "$TMP/cli.tar.gz"
-                tar -xzf "$TMP/cli.tar.gz" -C "$TMP"
-                BIN=$(find "$TMP" -maxdepth 3 -name infisical -type f | head -1)
-                if [ -z "$BIN" ]; then
-                  echo "Infisical tarball did not contain an infisical binary"
-                  exit 1
-                fi
-                if command -v sudo >/dev/null 2>&1; then
-                  sudo install -m 0755 "$BIN" /usr/local/bin/infisical
-                else
-                  mkdir -p "$HOME/.local/bin"
-                  install -m 0755 "$BIN" "$HOME/.local/bin/infisical"
-                  export PATH="$HOME/.local/bin:$PATH"
-                fi
-              fi
-            fi
+            command -v infisical >/dev/null 2>&1 || { echo "infisical CLI not found on PATH"; exit 1; }
             cd /var/www/bidmax/deploy_conf || exit 1
             export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="$INFISICAL_CLIENT_ID" --client-secret="$INFISICAL_CLIENT_SECRET" --domain=https://eu.infisical.com --silent --plain)
             if [ -z "$INFISICAL_TOKEN" ]; then
@@ -86,14 +43,10 @@ jobs:
             git reset --hard "origin/$DEPLOY_BRANCH"
             git clean -fd
 
-            ic_run() {
-              infisical run --projectId="$INFISICAL_PROJECT_ID" --env="$INFISICAL_ENV" --token="$INFISICAL_TOKEN" --domain=https://eu.infisical.com -- "$@"
-            }
-
-            ic_run sh -c "docker compose -f $COMPOSE_FILE pull"
-            ic_run sh -c "docker compose -f $COMPOSE_FILE down"
-            if [ "$DEPLOY_BRANCH" != "main" ]; then
-              ic_run python3 scripts/initialize.py
+            export INFISICAL_PROJECT_ID INFISICAL_DOMAIN=https://eu.infisical.com
+            if [ "$DEPLOY_BRANCH" = "main" ]; then
+              make deploy prod
+            else
+              make deploy demo
             fi
-            ic_run sh -c "docker compose -f $COMPOSE_FILE up -d --build"
             echo "Deployment completed successfully!"
