@@ -44,7 +44,7 @@ INFISICAL_RUN += --
 # you start profile embedded-datastores).
 ifeq ($(ENV),prod)
 up:
-	$(INFISICAL_RUN) sh -c '$(DOCKER_COMPOSE) pull && $(DOCKER_COMPOSE) up -d'
+	$(INFISICAL_RUN) sh -c '$(DOCKER_COMPOSE) pull && bash ./scripts/pg_stack_up.sh prod'
 else
 up:
 	$(INFISICAL_RUN) sh -c '$(DOCKER_COMPOSE) pull && bash ./scripts/pg_stack_up.sh $(ENV)'
@@ -56,7 +56,9 @@ ifeq ($(ENV),demo)
 	$(INFISICAL_RUN) python3 scripts/initialize.py
 	$(INFISICAL_RUN) sh -c '$(DOCKER_COMPOSE) up -d --build'
 else ifeq ($(ENV),prod)
-	$(INFISICAL_RUN) sh -c '$(DOCKER_COMPOSE) pull && $(DOCKER_COMPOSE) down && $(DOCKER_COMPOSE) up -d --build'
+	$(INFISICAL_RUN) sh -c '$(DOCKER_COMPOSE) pull && $(DOCKER_COMPOSE) down'
+	$(INFISICAL_RUN) python3 scripts/initialize.py
+	$(INFISICAL_RUN) sh -c '$(DOCKER_COMPOSE) up -d --build'
 else
 	$(error deploy requires demo or prod — e.g. make deploy demo)
 endif

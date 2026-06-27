@@ -1,5 +1,6 @@
 # Base stack shared by environments.
 # - Demo: demo/docker-compose.demo.yml uses `include` (frontend + traefik + external DB/Redis env).
+# - Prod: prod/docker-compose.yml uses `include` (same external DB/Redis/RabbitMQ pattern as demo).
 # - Dev: merge with dev/docker-compose.dev.yml and `--profile embedded-datastores` for bundled Postgres/Redis/RabbitMQ/Adminer.
 #   Dev cannot use `include` for adminer port mapping because included services are not overridable.
 
