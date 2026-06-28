@@ -24,18 +24,26 @@ else
 $(error Unsupported ENV='$(ENV)'. Use dev, demo, or prod)
 endif
 
+ifeq ($(ENV),dev)
+# Local dev: `infisical login` session only (same as run.ps1). No /etc/infisical/machine.env.
+INFISICAL_RUN := infisical run --env=$(INFISICAL_ENV)
+ifdef INFISICAL_DOMAIN
+INFISICAL_RUN += --domain=$(INFISICAL_DOMAIN)
+endif
+INFISICAL_RUN += --
+else
 ifndef INFISICAL_PROJECT_ID
 $(error INFISICAL_PROJECT_ID must be set — export it or source /etc/infisical/machine.env after login)
 endif
 ifndef INFISICAL_TOKEN
 $(error INFISICAL_TOKEN must be set — run infisical login or use scripts/auto_deploy.sh)
 endif
-
 INFISICAL_RUN := infisical run --projectId=$(INFISICAL_PROJECT_ID) --env=$(INFISICAL_ENV) --token=$(INFISICAL_TOKEN)
 ifdef INFISICAL_DOMAIN
 INFISICAL_RUN += --domain=$(INFISICAL_DOMAIN)
 endif
 INFISICAL_RUN += --
+endif
 
 .PHONY: up down deploy logs restart clean-volumes pull help --env dev demo prod
 
@@ -61,19 +69,33 @@ else
 	$(error deploy requires demo or prod — e.g. make deploy demo)
 endif
 
+ifeq ($(ENV),dev)
+down:
+	$(DOCKER_COMPOSE) down
+
+logs:
+	$(DOCKER_COMPOSE) logs -f
+
+clean-volumes:
+	$(DOCKER_COMPOSE) down -v
+
+pull:
+	$(DOCKER_COMPOSE) pull
+else
 down:
 	$(INFISICAL_RUN) $(DOCKER_COMPOSE) down
 
 logs:
 	$(INFISICAL_RUN) $(DOCKER_COMPOSE) logs -f
 
-restart: down up
-
 clean-volumes:
 	$(INFISICAL_RUN) $(DOCKER_COMPOSE) down -v
 
 pull:
 	$(INFISICAL_RUN) $(DOCKER_COMPOSE) pull
+endif
+
+restart: down up
 
 help:
 	@echo "Available commands:"
@@ -85,7 +107,7 @@ help:
 	@echo "  clean-volumes - Stop containers and remove volumes"
 	@echo "  pull          - Pull latest images"
 	@echo "  (dev/demo up runs scripts/initialize.py — Postgres + Redis preflight)"
-	@echo "  down/logs/clean-volumes/pull require INFISICAL_PROJECT_ID and INFISICAL_TOKEN."
+	@echo "  dev: infisical login only (no machine.env). demo/prod: INFISICAL_PROJECT_ID + INFISICAL_TOKEN."
 	@echo "  help          - Show this help message"
 	@echo ""
 	@echo "Environment selection:"
