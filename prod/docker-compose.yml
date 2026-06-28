@@ -18,6 +18,10 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: https://api.bidmax.eu
+    # BFF routes (login, /api/private) call api.bidmax.eu from the container.
+    # Resolve to the host so Traefik handles the request locally instead of via Cloudflare.
+    extra_hosts:
+      - "api.bidmax.eu:host-gateway"
     expose:
       - 3000
     networks:
