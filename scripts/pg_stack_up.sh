@@ -33,11 +33,12 @@ case "$ENV_NAME" in
     dc_demo up -d
     ;;
   prod)
-    echo "pg_stack_up.sh: prod is unchanged; use: infisical run --env=prod -- docker compose -f prod/docker-compose.yml up -d" >&2
-    exit 1
+    export CHECK_DATABASES_USE_COMPOSE="${CHECK_DATABASES_USE_COMPOSE:-0}"
+    python3 "$ROOT/scripts/initialize.py"
+    docker compose -f prod/docker-compose.yml up -d
     ;;
   *)
-    echo "usage: $0 {dev|demo}" >&2
+    echo "usage: $0 {dev|demo|prod}" >&2
     exit 1
     ;;
 esac
