@@ -59,7 +59,7 @@ services:
     environment:
       ADMINER_DEFAULT_SERVER: ${DB_HOST}
       ADMINER_DESIGN: pepa-linha-dark
-      ADMINER_PLUGINS: tables-filter tinymce
+      ADMINER_PLUGINS: tables-filter
     networks:
       - traefik_net
     healthcheck:
