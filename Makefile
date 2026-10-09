@@ -24,6 +24,8 @@ else
 $(error Unsupported ENV='$(ENV)'. Use dev, demo, or prod)
 endif
 
+export INFISICAL_ENV
+
 ifeq ($(ENV),dev)
 # Local dev: `infisical login` session only (same as run.ps1). No /etc/infisical/machine.env.
 INFISICAL_RUN := infisical run --env=$(INFISICAL_ENV)
