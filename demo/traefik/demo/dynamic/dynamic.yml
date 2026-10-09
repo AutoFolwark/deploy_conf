@@ -13,6 +13,22 @@ http:
               - api.demo.bidmax.eu
               - adminer.demo.bidmax.eu
 
+    sitemap-index:
+      entryPoints: [websecure]
+      rule: "Host(`demo.bidmax.eu`) && Path(`/sitemap.xml`)"
+      service: api-service
+      priority: 120
+      tls: {}
+      middlewares: [sitemap-index-path]
+
+    sitemaps:
+      entryPoints: [websecure]
+      rule: "Host(`demo.bidmax.eu`) && PathPrefix(`/sitemaps/`)"
+      service: api-service
+      priority: 120
+      tls: {}
+      middlewares: [sitemaps-path]
+
     api:
       entryPoints: [websecure]
       rule: "Host(`api.demo.bidmax.eu`) && PathPrefix(`/auction-api`)"
@@ -212,6 +228,15 @@ http:
     api-strip:
       stripPrefix:
         prefixes: ["/auction-api"]
+
+    sitemap-index-path:
+      replacePath:
+        path: "/public/v1/sitemaps/sitemap-index.xml"
+
+    sitemaps-path:
+      replacePathRegex:
+        regex: "^/sitemaps/(.*)"
+        replacement: "/public/v1/sitemaps/$1"
 
     calculator-strip:
       stripPrefix:
