@@ -11,6 +11,7 @@
 include:
   - path: ../general/docker-compose.base.yml
 
+
 name: demo
 
 services:
@@ -58,7 +59,8 @@ services:
     environment:
       ADMINER_DEFAULT_SERVER: ${DB_HOST}
       ADMINER_DESIGN: pepa-linha-dark
-      ADMINER_PLUGINS: tables-filter tinymce
+      # Adminer 5 dropped the tinymce plugin; listing it makes the container exit.
+      ADMINER_PLUGINS: tables-filter
     networks:
       - traefik_net
     healthcheck:
