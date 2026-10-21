@@ -37,6 +37,7 @@ SERVICE_DBS: list[tuple[str, str, str, str]] = [
     ("bid", "BID_DB_USER", "BID_DB_PASS", "BID_DB_NAME"),
     ("order", "ORDER_DB_USER", "ORDER_DB_PASS", "ORDER_DB_NAME"),
     ("file", "FILE_DB_USER", "FILE_DB_PASS", "FILE_DB_NAME"),
+    ("blog", "BLOG_DB_USER", "BLOG_DB_PASS", "BLOG_DB_NAME"),
 ]
 
 _IDENT = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]{0,62}$")

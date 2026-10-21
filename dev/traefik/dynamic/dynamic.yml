@@ -119,6 +119,20 @@ http:
       priority: 75
       middlewares: [cors, auth-forward, carfax-strip]
 
+    blog:
+      entryPoints: [web]
+      rule: "Host(`localhost`) && PathPrefix(`/blog`)"
+      service: blog
+      priority: 42
+      middlewares: [cors, blog-strip]
+
+    blog-protected:
+      entryPoints: [web]
+      rule: "Host(`localhost`) && PathPrefix(`/blog/admin`)"
+      service: blog
+      priority: 48
+      middlewares: [cors, auth-forward, blog-strip]
+
 
   services:
 
@@ -167,6 +181,11 @@ http:
         servers:
           - url: "http://carfax_service:8001"
 
+    blog:
+      loadBalancer:
+        servers:
+          - url: "http://blog_service:8010"
+
     grafana:
       loadBalancer:
         servers:
@@ -210,6 +229,10 @@ http:
     carfax-strip:
       stripPrefix:
         prefixes: ["/carfax"]
+
+    blog-strip:
+      stripPrefix:
+        prefixes: ["/blog"]
 
     rabbitmq-strip:
       stripPrefix:

@@ -4,7 +4,7 @@
 # Prod does not start bundled PostgreSQL, Redis, or RabbitMQ (profile `embedded-datastores` in
 # general/docker-compose.base.yml). Adminer is started below for external DB_HOST (Traefik → database_adminer:8080).
 # Set DB_HOST, REDIS_URL, RABBITMQ_URL, CONTAINER_TAG (e.g. via Infisical).
-# Redis for auth/api/calculator is ${REDIS_URL}/0, ${REDIS_URL}/1, ${REDIS_URL}/2 (e.g. REDIS_URL=redis://host:6379).
+# Redis for auth/api/calculator/blog is ${REDIS_URL}/0, /1, /2, /3 (e.g. REDIS_URL=redis://host:6379).
 
 include:
   - path: ../general/docker-compose.base.yml
@@ -140,6 +140,11 @@ services:
   favorites_service:
     environment:
       DB_HOST: ${DB_HOST}
+
+  blog_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/3
 
   bid_service:
     environment:

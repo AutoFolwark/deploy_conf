@@ -58,6 +58,8 @@ networks:
     driver: bridge
   file_service_net:
     driver: bridge
+  blog_service_net:
+    driver: bridge
   file_rpc_net:
     driver: bridge
 
@@ -95,7 +97,7 @@ volumes:
   # Single PostgreSQL instance (multiple DBs / roles; provision outside the image or via init SQL)
   pg_data:
 
-  # Single Redis instance (logical DBs /0 /1 /2 for auth / api / calculator)
+  # Single Redis instance (logical DBs /0 /1 /2 /3 for auth / api / calculator / blog)
   redis_data:
 
   # Message queue data
@@ -299,6 +301,22 @@ x-file-environment: &file-environment
   AWS_REGION:
   S3_BUCKET:
   RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq/
+
+# Blog Service Template
+# DEBUG is hardcoded false: this app uses SQLite when DEBUG is true and ignores DB_*.
+x-blog-base: &blog-base
+  image: autofolwarkwork/blog_service:${CONTAINER_TAG:-main}
+
+x-blog-environment: &blog-environment
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_NAME: ${BLOG_DB_NAME}
+  DB_USER: ${BLOG_DB_USER}
+  DB_PASS: ${BLOG_DB_PASS}
+  REDIS_URL: redis://redis:6379/3
+  ROOT_PATH: /blog
+  ENVIRONMENT:
+  DEBUG: "false"
 
 
 # Standard Health Check Template
@@ -743,6 +761,27 @@ services:
       - file_service_net
       - internal_net
 
+  # ----------------------------------------------------------------------
+  # 2.11 BLOG SERVICE
+  # ----------------------------------------------------------------------
+
+  blog_service:
+    <<: *blog-base
+    container_name: blog_service
+    command:
+      [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8010", "--log-level", "debug", "--proxy-headers" ]
+    expose: [ "8010" ]
+    restart: unless-stopped
+    environment:
+      <<: *blog-environment
+    healthcheck:
+      <<: *healthcheck
+      test: [ "CMD-SHELL", "curl -f http://localhost:8010/health || exit 1" ]
+    networks:
+      - blog_service_net
+      - internal_net
+      - traefik_net
+
 
   # ======================================================================
   # 3. MESSAGE QUEUE SYSTEM
@@ -785,7 +824,7 @@ services:
   # ======================================================================
 
   # ----------------------------------------------------------------------
-  # 4.1 REDIS (single instance; auth=api=calculator use logical DB 0 / 1 / 2 in REDIS_URL)
+  # 4.1 REDIS (single instance; auth/api/calculator/blog use logical DB 0 / 1 / 2 / 3 in REDIS_URL)
   # ----------------------------------------------------------------------
   redis:
     image: redis:8-alpine
@@ -956,6 +995,7 @@ services:
 # - Bid Service:         8007 (HTTP)
 # - Order Service:       8008 (HTTP)
 # - File Service / RPC:  8009 (HTTP), 50055 (gRPC)
+# - Blog Service:        8010 (HTTP)
 # - RabbitMQ:            5672 (AMQP), 15672 (Management)
 # - Grafana:             3001 (accessible via /grafana/)
 #
@@ -963,7 +1003,7 @@ services:
 # - HTTP: Public APIs and inter-service REST calls
 # - gRPC: High-performance internal service communication across api_rpc_net, payment_rpc_net, auth_rpc_net, carfax_rpc_net, calculator_rpc_net, and file_rpc_net
 # - RabbitMQ: Asynchronous event-driven communication
-# - Redis: one instance; auth/api/calculator use DB index 0/1/2
+# - Redis: one instance; auth/api/calculator/blog use DB index 0/1/2/3
 #
 # SECURITY FEATURES:
 # - Network isolation between services

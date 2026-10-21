@@ -139,6 +139,11 @@ services:
     environment:
       DB_HOST: ${DB_HOST}
 
+  blog_service:
+    environment:
+      DB_HOST: ${DB_HOST}
+      REDIS_URL: ${REDIS_URL}/3
+
   bid_service:
     environment:
       DB_HOST: ${DB_HOST}

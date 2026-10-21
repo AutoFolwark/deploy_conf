@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Verify Redis connectivity for auth / api / calculator logical DBs.
+Verify Redis connectivity for auth / api / calculator / blog logical DBs.
 
-Bundled stack uses one `redis` container; REDIS_URL uses different DB indices (/0 /1 /2).
+Bundled stack uses one `redis` container; REDIS_URL uses different DB indices (/0 /1 /2 /3).
 With CHECK_DATABASES_USE_COMPOSE=1/true, runs `docker compose exec redis redis-cli -n N ping`
 (same dev compose argv as the Postgres check; Infisical / pg_stack_up.sh).
 
 Otherwise (demo / external Redis) uses a single `REDIS_URL` base (no /N suffix); checks
-`${REDIS_URL}/0`, `/1`, `/2` via a short-lived `redis:8-alpine` client container.
+`${REDIS_URL}/0`, `/1`, `/2`, `/3` via a short-lived `redis:8-alpine` client container.
 """
 from __future__ import annotations
 
@@ -24,9 +24,10 @@ COMPOSE_DB_INDICES: list[tuple[str, int]] = [
     ("auth", 0),
     ("api", 1),
     ("calculator", 2),
+    ("blog", 3),
 ]
 
-URL_LABELS = ("auth", "api", "calculator")
+URL_LABELS = ("auth", "api", "calculator", "blog")
 
 
 def _check_compose_db(repo: Path, label: str, db_index: int) -> None:
@@ -96,7 +97,7 @@ def main() -> None:
             )
             sys.exit(1)
         base = str(base).strip().rstrip("/")
-        for i, label in zip((0, 1, 2), URL_LABELS):
+        for i, label in zip((0, 1, 2, 3), URL_LABELS):
             url = f"{base}/{i}"
             print(f"redis check [{label}] REDIS_URL/{i} ...", flush=True)
             try:
@@ -107,7 +108,7 @@ def main() -> None:
 
     if failed:
         sys.exit(1)
-    print("redis check: auth / api / calculator URLs OK", flush=True)
+    print("redis check: auth / api / calculator / blog URLs OK", flush=True)
 
 
 if __name__ == "__main__":

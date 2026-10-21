@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Preflight: проверка подключений к БД сервисов (Postgres) и Redis (логические DB 0/1/2).
+Preflight: проверка подключений к БД сервисов (Postgres) и Redis (логические DB 0/1/2/3).
 
 Вызывается из scripts/pg_stack_up.sh после `infisical run`. Переменные окружения — те же,
 что у модулей в initialize_db_users/ (CHECK_DATABASES_USE_COMPOSE, DB_HOST, REDIS_URL,

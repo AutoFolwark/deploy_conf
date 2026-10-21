@@ -224,3 +224,10 @@ services:
         condition: service_healthy
       api_rpc_service:
         condition: service_healthy
+
+  blog_service:
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

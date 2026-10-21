@@ -155,6 +155,22 @@ http:
       tls: {}
       middlewares: [cors, auth-forward, carfax-strip]
 
+    blog:
+      entryPoints: [websecure]
+      rule: "Host(`api.bidmax.eu`) && PathPrefix(`/blog`)"
+      service: blog
+      priority: 42
+      tls: {}
+      middlewares: [blog-strip, cors]
+
+    blog-protected:
+      entryPoints: [websecure]
+      rule: "Host(`api.bidmax.eu`) && PathPrefix(`/blog/admin`)"
+      service: blog
+      priority: 48
+      tls: {}
+      middlewares: [cors, auth-forward, blog-strip]
+
 
   services:
     frontend:
@@ -206,6 +222,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://carfax_service:8001"
+
+    blog:
+      loadBalancer:
+        servers:
+          - url: "http://blog_service:8010"
 
     grafana:
       loadBalancer:
@@ -274,6 +295,10 @@ http:
     carfax-strip:
       stripPrefix:
         prefixes: ["/carfax"]
+
+    blog-strip:
+      stripPrefix:
+        prefixes: ["/blog"]
 
     rabbitmq-strip:
       stripPrefix:
