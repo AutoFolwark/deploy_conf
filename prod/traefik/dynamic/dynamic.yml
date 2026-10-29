@@ -2,13 +2,13 @@ http:
   routers:
     frontend:
       entryPoints: [websecure]
-      rule: "Host(`bidmax.eu`)"
+      rule: "Host(`bidmax.eu`) || Host(`www.bidmax.eu`)"
       service: frontend
       priority: 10
 
     sitemap-index:
       entryPoints: [websecure]
-      rule: "Host(`bidmax.eu`) && Path(`/sitemap.xml`)"
+      rule: "(Host(`bidmax.eu`) || Host(`www.bidmax.eu`)) && Path(`/sitemap.xml`)"
       service: api-service
       priority: 120
       tls: {}
@@ -16,7 +16,7 @@ http:
 
     sitemaps:
       entryPoints: [websecure]
-      rule: "Host(`bidmax.eu`) && PathPrefix(`/sitemaps/`)"
+      rule: "(Host(`bidmax.eu`) || Host(`www.bidmax.eu`)) && PathPrefix(`/sitemaps/`)"
       service: api-service
       priority: 120
       tls: {}
@@ -314,6 +314,7 @@ http:
           - OPTIONS
         accessControlAllowOriginList:
           - "https://bidmax.eu"
+          - "https://www.bidmax.eu"
         accessControlAllowHeaders:
           - "Content-Type"
           - "Authorization"
