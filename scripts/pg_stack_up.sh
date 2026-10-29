@@ -24,6 +24,10 @@ case "$ENV_NAME" in
   dev)
     dc_dev up -d --wait --wait-timeout 120 postgres redis
     export CHECK_DATABASES_USE_COMPOSE="${CHECK_DATABASES_USE_COMPOSE:-1}"
+    # Infisical sets CHECK_DATABASES_AUTO_PROVISION=false so demo/prod never
+    # CREATE ROLE on a shared server. The local embedded Postgres volume starts
+    # empty, so the dev stack always provisions missing roles and databases.
+    export CHECK_DATABASES_AUTO_PROVISION=1
     python3 "$ROOT/scripts/initialize.py"
     dc_dev up -d
     ;;
