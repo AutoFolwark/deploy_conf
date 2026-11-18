@@ -13,21 +13,22 @@ http:
               - api.demo.bidmax.eu
               - adminer.demo.bidmax.eu
 
-    sitemap-index:
+    # Public sitemaps on the demo domain → api_service (streams S3)
+    sitemap:
       entryPoints: [websecure]
-      rule: "Host(`demo.bidmax.eu`) && Path(`/sitemap.xml`)"
+      rule: "Host(`demo.bidmax.eu`) && (PathPrefix(`/sitemap`) || PathPrefix(`/static_sitemaps/`))"
       service: api-service
       priority: 120
       tls: {}
-      middlewares: [sitemap-index-path]
+      middlewares: [sitemap-rewrite]
 
-    sitemaps:
+    sitemap-legacy-redirect:
       entryPoints: [websecure]
       rule: "Host(`demo.bidmax.eu`) && PathPrefix(`/sitemaps/`)"
-      service: api-service
-      priority: 120
+      service: noop@internal
+      priority: 130
       tls: {}
-      middlewares: [sitemaps-path]
+      middlewares: [sitemap-legacy-redirect]
 
     api:
       entryPoints: [websecure]
@@ -250,14 +251,16 @@ http:
       stripPrefix:
         prefixes: ["/auction-api"]
 
-    sitemap-index-path:
-      replacePath:
-        path: "/public/v1/sitemaps/sitemap-index.xml"
-
-    sitemaps-path:
+    sitemap-rewrite:
       replacePathRegex:
-        regex: "^/sitemaps/(.*)"
+        regex: "^/(.*)$"
         replacement: "/public/v1/sitemaps/$1"
+
+    sitemap-legacy-redirect:
+      redirectRegex:
+        regex: "^https?://([^/]+)/sitemaps/.*"
+        replacement: "https://${1}/sitemap.xml"
+        permanent: true
 
     calculator-strip:
       stripPrefix:

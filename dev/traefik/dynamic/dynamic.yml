@@ -8,6 +8,21 @@ http:
       priority: 100
       middlewares: [cors, api-strip]
 
+    # Public sitemaps on localhost → api_service (streams S3)
+    sitemap:
+      entryPoints: [web]
+      rule: "Host(`localhost`) && (PathPrefix(`/sitemap`) || PathPrefix(`/static_sitemaps/`))"
+      service: api-service
+      priority: 120
+      middlewares: [sitemap-rewrite]
+
+    sitemap-legacy-redirect:
+      entryPoints: [web]
+      rule: "Host(`localhost`) && PathPrefix(`/sitemaps/`)"
+      service: noop@internal
+      priority: 130
+      middlewares: [sitemap-legacy-redirect]
+
     frontend:
       entryPoints: [ web ]
       rule: "Host(`localhost`)"
@@ -197,6 +212,17 @@ http:
     api-strip:
       stripPrefix:
         prefixes: [ "/auction-api" ]
+
+    sitemap-rewrite:
+      replacePathRegex:
+        regex: "^/(.*)$"
+        replacement: "/public/v1/sitemaps/$1"
+
+    sitemap-legacy-redirect:
+      redirectRegex:
+        regex: "^https?://([^/]+)/sitemaps/.*"
+        replacement: "http://${1}/sitemap.xml"
+        permanent: true
 
     calculator-strip:
       stripPrefix:
