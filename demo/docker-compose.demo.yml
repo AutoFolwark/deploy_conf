@@ -51,15 +51,16 @@ services:
   # Traefik file config routes adminer.demo.bidmax.eu → database_adminer:8080 — this service satisfies that.
   # Do not use `--profile embedded-datastores` with this file (would duplicate container_name with base adminer).
   adminer_external:
-    image: adminer:latest
+    # Pinned: adminer:latest moved to 6.x and dropped the tinymce plugin.
+    # A missing plugin exits the container; cap restarts so that cannot wedge the host.
+    image: adminer:6.3.1
     container_name: database_adminer
-    restart: unless-stopped
+    restart: on-failure:5
     expose:
       - "8080"
     environment:
       ADMINER_DEFAULT_SERVER: ${DB_HOST}
       ADMINER_DESIGN: pepa-linha-dark
-      # Adminer 5 dropped the tinymce plugin; listing it makes the container exit.
       ADMINER_PLUGINS: tables-filter
     networks:
       - traefik_net

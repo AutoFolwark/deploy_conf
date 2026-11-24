@@ -892,19 +892,21 @@ services:
   # 5.2 ADMINER DATABASE MANAGEMENT
   # ======================================================================
   adminer:
-    image: adminer:latest
+    # Pinned: adminer:latest (6.x) no longer ships tinymce. A missing plugin
+    # exits the container, and unless-stopped restarts it without a limit.
+    image: adminer:6.3.1
     # Available through Traefik at http://localhost/adminer/
     container_name: database_adminer
     profiles:
       - embedded-datastores
-    restart: unless-stopped
+    restart: on-failure:5
     expose:
       - 8080
 
     environment:
       - ADMINER_DEFAULT_SERVER=postgres
       - ADMINER_DESIGN=pepa-linha-dark
-      - ADMINER_PLUGINS=tables-filter tinymce
+      - ADMINER_PLUGINS=tables-filter
 
     networks:
       - adminer_database_net
